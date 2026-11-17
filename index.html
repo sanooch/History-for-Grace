@@ -1,0 +1,1446 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>가은이의 역사 스낵 퀴즈</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Noto Sans KR', 'Inter', sans-serif;
+      -webkit-tap-highlight-color: transparent;
+      background-color: #f1f5f9;
+    }
+    .choice-btn {
+      transition: all 0.16s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .choice-btn:active:not(:disabled) {
+      transform: scale(0.985);
+    }
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fade-up {
+      animation: fadeSlideUp 0.25s ease-out forwards;
+    }
+  </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col items-center">
+
+  <!-- 앱 전체 컨테이너 (모바일 퍼스트 최대 너비 제한) -->
+  <div id="app" class="w-full max-w-md min-h-screen bg-white shadow-xl flex flex-col relative overflow-x-hidden">
+
+    <!-- 상단 내비게이션 헤더 -->
+    <header class="sticky top-0 z-30 bg-indigo-950 text-white px-4 py-3.5 flex items-center justify-between shadow-md">
+      <div class="flex items-center gap-2.5">
+        <button id="btn-home" onclick="goHome()" class="hidden p-1.5 -ml-1.5 rounded-xl hover:bg-indigo-900 active:bg-indigo-800 transition" aria-label="홈으로">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <div>
+          <span class="text-[11px] font-semibold tracking-wider text-indigo-300 block leading-none mb-0.5">중학교 역사 시험 완벽 대비</span>
+          <h1 class="text-base font-extrabold tracking-tight leading-none">가은이의 역사 스낵 퀴즈</h1>
+        </div>
+      </div>
+
+      <!-- 암기 공식 꿀팁 버튼 -->
+      <button onclick="toggleTipsModal(true)" class="flex items-center gap-1.5 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-indigo-950 font-extrabold text-xs px-3 py-2 rounded-xl shadow-sm transition">
+        <span>💡 암기공식</span>
+      </button>
+    </header>
+
+    <!-- ==================== 1. 홈 대시보드 화면 ==================== -->
+    <main id="screen-home" class="flex-1 p-4 pb-8 flex flex-col gap-4 animate-fade-up">
+
+      <!-- 학습 현황 요약 카드 -->
+      <section class="bg-gradient-to-br from-indigo-900 via-indigo-800 to-blue-900 rounded-2xl p-4 text-white shadow-md">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <p class="text-xs text-indigo-200 font-medium">오늘도 한 문제씩 가볍게!</p>
+            <h2 class="text-lg font-extrabold mt-0.5">가은이의 학습 대시보드</h2>
+          </div>
+          <button onclick="confirmResetProgress()" class="text-[11px] text-indigo-300 hover:text-white underline px-2 py-1 rounded-lg">
+            기록 초기화
+          </button>
+        </div>
+
+        <div class="grid grid-cols-3 gap-2.5 text-center">
+          <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5">
+            <div id="stat-solved" class="text-xl font-black text-amber-300">0</div>
+            <div class="text-[11px] text-indigo-100 mt-0.5">푼 문제 수</div>
+          </div>
+          <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5">
+            <div id="stat-accuracy" class="text-xl font-black text-emerald-300">0%</div>
+            <div class="text-[11px] text-indigo-100 mt-0.5">누적 정답률</div>
+          </div>
+          <div class="bg-white/10 backdrop-blur-sm rounded-xl p-2.5">
+            <div id="stat-wrong" class="text-xl font-black text-rose-300">0</div>
+            <div class="text-[11px] text-indigo-100 mt-0.5">오답 노트</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 이어풀기 배너 (저장된 세션이 있을 때만 표시) -->
+      <section id="resume-banner" class="hidden bg-amber-50 border-2 border-amber-300 rounded-2xl p-3.5 flex items-center justify-between gap-3 shadow-sm">
+        <div>
+          <span class="inline-block text-[11px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md mb-1">진행 중인 퀴즈</span>
+          <p id="resume-title" class="text-sm font-bold text-slate-800">전체 랜덤 스낵 퀴즈 (3 / 40)</p>
+        </div>
+        <button onclick="resumeSavedQuiz()" class="shrink-0 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs px-4 py-2.5 rounded-xl shadow transition">
+          이어풀기 →
+        </button>
+      </section>
+
+      <!-- 모드 선택 섹션 -->
+      <section class="flex flex-col gap-2.5">
+        <h3 class="text-xs font-extrabold text-slate-500 uppercase tracking-wider px-1">학습 모드 선택</h3>
+
+        <!-- 전체 랜덤 스낵 퀴즈 -->
+        <button onclick="startQuiz('all')" class="w-full text-left bg-indigo-50 hover:bg-indigo-100/80 border-2 border-indigo-200 rounded-2xl p-4 flex items-center justify-between transition shadow-sm">
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl font-black shrink-0 shadow">
+              🎲
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-base text-indigo-950">전체 범위 랜덤 스낵 퀴즈</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-0.5">전 범위 40문항 무작위 출제 · 이동 중 틈새 학습</p>
+            </div>
+          </div>
+          <span class="text-indigo-600 font-extrabold text-lg">›</span>
+        </button>
+
+        <!-- 오답 노트 복습 모드 -->
+        <button onclick="startQuiz('wrong')" id="btn-wrong-mode" class="w-full text-left bg-rose-50 hover:bg-rose-100/80 border-2 border-rose-200 rounded-2xl p-4 flex items-center justify-between transition shadow-sm">
+          <div class="flex items-center gap-3.5">
+            <div class="w-11 h-11 rounded-xl bg-rose-600 text-white flex items-center justify-center text-xl font-black shrink-0 shadow">
+              📌
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-base text-rose-950">오답 노트 집중 복습</span>
+                <span id="badge-wrong-count" class="text-[11px] font-extrabold bg-rose-600 text-white px-2 py-0.5 rounded-full">0문제</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-0.5">틀렸던 문제만 쏙쏙 골라 맞힐 때까지 반복!</p>
+            </div>
+          </div>
+          <span class="text-rose-600 font-extrabold text-lg">›</span>
+        </button>
+      </section>
+
+      <!-- 단원별 집중 공략 섹션 -->
+      <section class="flex flex-col gap-2.5 mt-1">
+        <h3 class="text-xs font-extrabold text-slate-500 uppercase tracking-wider px-1">단원별 집중 공략</h3>
+
+        <!-- Ⅳ단원 -->
+        <button onclick="startQuiz('unit4')" class="w-full text-left bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center justify-between transition shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-blue-100 text-blue-800 font-extrabold text-sm flex items-center justify-center shrink-0">Ⅳ단원</span>
+            <div>
+              <div class="font-bold text-sm text-slate-900">지역 세계의 교류와 변화</div>
+              <p class="text-[11px] text-slate-500 mt-0.5">송·원·명·청 · 일본 · 무굴 · 오스만 · 신항로 · 종교개혁</p>
+            </div>
+          </div>
+          <span id="count-unit4" class="text-xs font-bold text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg shrink-0">14문항</span>
+        </button>
+
+        <!-- Ⅴ단원 -->
+        <button onclick="startQuiz('unit5')" class="w-full text-left bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center justify-between transition shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-800 font-extrabold text-sm flex items-center justify-center shrink-0">Ⅴ단원</span>
+            <div>
+              <div class="font-bold text-sm text-slate-900">제국주의와 국민 국가 건설 운동</div>
+              <p class="text-[11px] text-slate-500 mt-0.5">시민혁명 · 빈체제 · 통일 · 산업혁명 · 아시아 근대화</p>
+            </div>
+          </div>
+          <span id="count-unit5" class="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg shrink-0">16문항</span>
+        </button>
+
+        <!-- Ⅵ단원 -->
+        <button onclick="startQuiz('unit6')" class="w-full text-left bg-white hover:bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center justify-between transition shadow-sm">
+          <div class="flex items-center gap-3">
+            <span class="w-9 h-9 rounded-xl bg-purple-100 text-purple-800 font-extrabold text-sm flex items-center justify-center shrink-0">Ⅵ단원</span>
+            <div>
+              <div class="font-bold text-sm text-slate-900">세계 대전과 사회 변동</div>
+              <p class="text-[11px] text-slate-500 mt-0.5">1차 대전 · 러시아혁명 · 대공황 · 전체주의 · 2차 대전</p>
+            </div>
+          </div>
+          <span id="count-unit6" class="text-xs font-bold text-purple-700 bg-purple-50 px-2.5 py-1 rounded-lg shrink-0">10문항</span>
+        </button>
+      </section>
+    </main>
+
+    <!-- ==================== 2. 퀴즈 풀이 화면 ==================== -->
+    <main id="screen-quiz" class="hidden flex-1 flex flex-col justify-between p-4 pb-6">
+      <div>
+        <!-- 상단 진행바 및 모드 배지 -->
+        <div class="flex items-center justify-between text-xs font-bold text-slate-500 mb-1.5">
+          <span id="quiz-mode-badge" class="bg-indigo-100 text-indigo-800 px-2.5 py-0.5 rounded-md">전체 랜덤 퀴즈</span>
+          <span id="quiz-progress-text" class="text-slate-700 font-extrabold">1 / 40</span>
+        </div>
+        <div class="w-full h-2 bg-slate-100 rounded-full overflow-hidden mb-4">
+          <div id="quiz-progress-bar" class="h-full bg-indigo-600 transition-all duration-300" style="width: 5%"></div>
+        </div>
+
+        <!-- 문제 카드 -->
+        <div id="question-container" class="animate-fade-up">
+          <div class="flex items-center gap-1.5 mb-2">
+            <span id="q-unit-tag" class="text-[11px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">Ⅳ단원</span>
+            <span id="q-topic-tag" class="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-800">송·북방민족</span>
+          </div>
+
+          <h2 id="q-text" class="text-[16px] font-extrabold text-slate-900 leading-snug mb-3">
+            문제 텍스트가 여기에 표시됩니다.
+          </h2>
+
+          <!-- 사료 / 보기 박스 (있는 경우에만 표시) -->
+          <div id="q-source-box" class="hidden bg-slate-50 border border-slate-200 rounded-xl p-3.5 mb-4 text-xs text-slate-700 leading-relaxed whitespace-pre-line font-medium">
+          </div>
+
+          <!-- 5지선다 선택지 버튼 목록 -->
+          <div id="choices-container" class="flex flex-col gap-2.5">
+          </div>
+        </div>
+
+        <!-- 정답/오답 상세 해설 카드 (선택 후 표시) -->
+        <div id="explanation-card" class="hidden mt-4 rounded-2xl p-4 border-2 animate-fade-up">
+          <div class="flex items-center gap-2 mb-2">
+            <span id="exp-status-icon" class="text-xl">⭕</span>
+            <span id="exp-status-title" class="font-extrabold text-base">정답입니다!</span>
+          </div>
+          <p id="exp-text" class="text-xs text-slate-700 leading-relaxed mb-2.5"></p>
+          <div class="bg-white/80 rounded-xl p-2.5 border border-slate-200/80">
+            <span class="text-[11px] font-extrabold text-indigo-800 block mb-0.5">🔗 인과관계 &amp; 핵심 암기 포인트</span>
+            <p id="exp-point" class="text-xs font-semibold text-slate-800 leading-snug"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 하단 액션 버튼 영역 -->
+      <div class="mt-6 pt-2 flex gap-2.5">
+        <button onclick="goHome()" class="w-1/3 py-3.5 rounded-xl border border-slate-300 text-slate-600 font-bold text-sm hover:bg-slate-50 active:bg-slate-100 transition">
+          잠깐 멈춤
+        </button>
+        <button id="btn-next" onclick="nextQuestion()" disabled class="w-2/3 py-3.5 rounded-xl bg-slate-300 text-white font-extrabold text-sm shadow transition disabled:cursor-not-allowed">
+          보기를 선택하세요
+        </button>
+      </div>
+    </main>
+
+    <!-- ==================== 3. 결과 요약 화면 ==================== -->
+    <main id="screen-result" class="hidden flex-1 p-5 flex flex-col items-center justify-center text-center animate-fade-up">
+      <div class="w-20 h-20 rounded-full bg-indigo-100 text-4xl flex items-center justify-center mb-4 shadow-inner">
+        🎉
+      </div>
+      <span id="res-mode-label" class="text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full mb-2">단원 학습 완료</span>
+      <h2 class="text-2xl font-black text-slate-900 mb-1">수고했어요, 가은이!</h2>
+      <p class="text-xs text-slate-500 mb-6">틀린 문제는 자동으로 오답 노트에 저장되었습니다.</p>
+
+      <div class="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-6 grid grid-cols-3 gap-2">
+        <div>
+          <div class="text-xs text-slate-500">총 문항</div>
+          <div id="res-total" class="text-xl font-black text-slate-800 mt-0.5">10</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500">맞힌 개수</div>
+          <div id="res-correct" class="text-xl font-black text-emerald-600 mt-0.5">8</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500">이번 점수</div>
+          <div id="res-score" class="text-xl font-black text-indigo-600 mt-0.5">80점</div>
+        </div>
+      </div>
+
+      <div class="w-full flex flex-col gap-2.5">
+        <button id="btn-retry-wrong" onclick="startQuiz('wrong')" class="w-full py-3.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-sm shadow transition">
+          📌 틀린 문제 바로 다시 풀기
+        </button>
+        <button onclick="goHome()" class="w-full py-3.5 rounded-xl bg-indigo-900 hover:bg-indigo-950 text-white font-extrabold text-sm shadow transition">
+          홈 화면으로 돌아가기
+        </button>
+      </div>
+    </main>
+
+    <!-- ==================== 토스트 메시지 박스 (alert 대체) ==================== -->
+    <div id="toast-box" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900/95 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-lg whitespace-nowrap">
+    </div>
+
+    <!-- ==================== 확인 모달 (confirm 대체) ==================== -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="bg-white rounded-2xl max-w-xs w-full p-5 shadow-2xl text-center animate-fade-up">
+        <div class="text-3xl mb-2">🔄</div>
+        <h3 class="font-extrabold text-base text-slate-900 mb-1">학습 기록을 초기화할까요?</h3>
+        <p class="text-xs text-slate-500 mb-4 leading-relaxed">지금까지 푼 문제 수, 정답률, 오답 노트 기록이 모두 초기화됩니다.</p>
+        <div class="flex gap-2">
+          <button onclick="closeConfirmModal()" class="flex-1 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs">취소</button>
+          <button onclick="executeResetProgress()" class="flex-1 py-2.5 rounded-xl bg-rose-600 text-white font-bold text-xs">초기화</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== 암기 공식 꿀팁 모달 ==================== -->
+    <div id="tips-modal" class="hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div class="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full max-h-[85vh] flex flex-col shadow-2xl animate-fade-up">
+        <div class="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">💡</span>
+            <h3 class="font-extrabold text-base text-indigo-950">1초 암기 공식 &amp; 비교 꿀팁</h3>
+          </div>
+          <button onclick="toggleTipsModal(false)" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100">
+            ✕
+          </button>
+        </div>
+
+        <div class="p-5 overflow-y-auto flex flex-col gap-3 text-xs leading-relaxed">
+          <div class="bg-amber-50 border border-amber-200 rounded-xl p-3">
+            <div class="font-extrabold text-amber-900 mb-1">1. 프랑스 혁명 의회 변천사: 「삼-국-입-공-총-나」</div>
+            <p class="text-slate-700"><strong>삼</strong>부회 → <strong>국</strong>민의회(인권선언) → <strong>입</strong>법의회(입헌군주제) → 국민<strong>공</strong>회(공화정·루이16세 처형·공포정치) → <strong>총</strong>재정부 → <strong>나</strong>폴레옹</p>
+          </div>
+
+          <div class="bg-indigo-50 border border-indigo-200 rounded-xl p-3">
+            <div class="font-extrabold text-indigo-900 mb-1">2. 중국 근대화 운동 순서: 「태-양-변-의-신」</div>
+            <p class="text-slate-700"><strong>태</strong>평천국(홍수전·멸만흥한) → <strong>양</strong>무운동(이홍장·중체서용) → <strong>변</strong>법자강(캉유웨이·제도개혁) → <strong>의</strong>화단(부청멸양) → <strong>신</strong>해혁명(쑨원·삼민주의)</p>
+          </div>
+
+          <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+            <div class="font-extrabold text-emerald-900 mb-1">3. 송 압박 북방 민족 &amp; 청 전성기 황제</div>
+            <p class="text-slate-700">• 북방 민족(<strong>거-탕-여</strong>): <strong>거</strong>란(요) → <strong>탕</strong>구트(서하) → <strong>여</strong>진(금)<br>• 청 전성기(<strong>강-옹-건</strong>): <strong>강</strong>희제 → <strong>옹</strong>정제 → <strong>건</strong>륭제(최대 영토)</p>
+          </div>
+
+          <div class="bg-sky-50 border border-sky-200 rounded-xl p-3">
+            <div class="font-extrabold text-sky-900 mb-1">4. 일본 막부 순서 &amp; 신항로 개척</div>
+            <p class="text-slate-700">• 일본 막부(<strong>가-무-전-에</strong>): <strong>가</strong>마쿠라 → <strong>무</strong>로마치 → <strong>전</strong>국시대(히데요시) → <strong>에</strong>도막부(산킨코타이)<br>• 신항로: <strong>포동 디다</strong>(포르투갈-동쪽: 디아스·다가마) / <strong>에서 콜마</strong>(에스파냐-서쪽: 콜럼버스·마젤란)</p>
+          </div>
+
+          <div class="bg-rose-50 border border-rose-200 rounded-xl p-3">
+            <div class="font-extrabold text-rose-900 mb-1">5. 쌍둥이 비교 포인트</div>
+            <p class="text-slate-700">• <strong>권리 청원(1628)</strong>: 찰스 1세(청교도 혁명) vs <strong>권리 장전(1689)</strong>: 명예혁명(입헌 군주제)<br>• <strong>아크바르</strong>: 지즈야 폐지(관용) vs <strong>아우랑제브</strong>: 지즈야 부활(탄압·쇠퇴)<br>• 대공황 극복: 미국(<strong>뉴딜 정책</strong>) vs 영·프(<strong>블록 경제</strong>)</p>
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-slate-100">
+          <button onclick="toggleTipsModal(false)" class="w-full py-3 rounded-xl bg-indigo-900 text-white font-extrabold text-xs">확인했어요!</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. 전체 시험 범위 고품질 40문항 문제 은행 (Ⅳ단원 14문항, Ⅴ단원 16문항, Ⅵ단원 10문항)
+    // =========================================================================
+    const QUESTION_BANK = [
+      // -------------------- [Ⅳ단원: 지역 세계의 교류와 변화 (14문항)] --------------------
+      {
+        id: 1,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '송의 발전',
+        question: '다음 설명에 해당하는 중국 왕조의 정책으로 옳지 않은 것은?',
+        source: '5대 10국의 혼란을 수습하고 나라를 세운 태조 조광윤은 절도사의 권한을 약화시키고 문인을 우대하는 정책을 펼쳤다. 그 결과 유교적 소양을 갖춘 새로운 지배층이 성장하였다.',
+        choices: [
+          '황제가 직접 주관하는 최종 과거 시험인 전시 제도를 도입하였다.',
+          '왕안석이 부국강병과 민생 안정을 목표로 신법을 추진하였다.',
+          '남송의 주희가 인간의 본성과 우주의 원리를 탐구하는 성리학을 집대성하였다.',
+          '바닷길 무역을 관리하기 위해 주요 항구에 시박사를 설치하였다.',
+          '소수의 정복 민족이 다수의 한족을 다스리기 위해 부족제와 주현제를 병행하였다.'
+        ],
+        answer: 4,
+        explanation: '부족제와 주현제를 병행하는 이원적 통치 방식은 북방 민족이 세운 정복 왕조(요·금 등)의 통치 방식입니다. 제시문은 송나라에 대한 설명입니다.',
+        keyPoint: '송나라 = 문치주의 + 전시 제도 + 사대부 성장 + 교자(지폐) + 시박사 + 성리학(주희)'
+      },
+      {
+        id: 2,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '북방 민족의 성장',
+        question: '송나라를 압박하며 성장한 북방 민족과 그들이 세운 나라의 연결 및 특징으로 옳은 것은?',
+        source: null,
+        choices: [
+          '거란족 - 서하 건국, 동서 무역로를 장악하며 송을 압박하였다.',
+          '탕구트족 - 요 건국, 발해를 멸망시키고 만리장성 이남 일부를 차지하였다.',
+          '여진족 - 금 건국, 송과 연합하여 요를 멸망시킨 뒤 북송을 남쪽으로 몰아냈다.',
+          '몽골족 - 후금 건국, 한족의 문화를 전면 수용하여 고유 문자를 만들지 않았다.',
+          '만주족 - 원 건국, 몽골 제일주의를 내세워 한족을 우대하였다.'
+        ],
+        answer: 2,
+        explanation: '여진족(아구다)은 금을 건국(1115)하고 송과 연합해 거란(요)을 멸망시킨 뒤, 송까지 공격하여 남송 시대를 열었습니다(1127). 거란은 요, 탕구트는 서하를 세웠습니다.',
+        keyPoint: '거-탕-여: 거란(요) → 탕구트(서하) → 여진(금). 정복 왕조는 모두 고유 문자를 제작함!'
+      },
+      {
+        id: 3,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '왕안석의 신법',
+        question: '북송 시기 왕안석이 다음과 같은 개혁(신법)을 추진하게 된 배경으로 가장 적절한 것은?',
+        source: '• 농민과 상인에게 낮은 이자로 돈을 빌려줄 것(청묘법)\n• 상품의 유통을 국가가 관리할 것(시역법·균수법)\n• 농민이 곧 병사가 되어 치안을 유지할 것(보갑법)',
+        choices: [
+          '이자성의 농민 반란으로 수도 베이징이 함락되었기 때문이다.',
+          '문치주의로 군사력이 약화되어 거란·서하에 막대한 비단과 은을 주느라 재정이 악화되었기 때문이다.',
+          '지폐(교초)를 지나치게 많이 발행하여 극심한 물가 폭등이 일어났기 때문이다.',
+          '영국과의 아편 전쟁에서 패배하여 막대한 전쟁 배상금을 물게 되었기 때문이다.',
+          '임진왜란 당시 조선에 대규모 지원군을 파병하면서 국가 재정이 파탄 났기 때문이다.'
+        ],
+        answer: 1,
+        explanation: '송은 문치주의 정책으로 국방력이 약화되면서 거란(요)·서하에 매년 막대한 은과 비단을 바쳤고, 이로 인한 재정 악화와 국방 위기를 극복하고자 왕안석이 신법을 추진했습니다.',
+        keyPoint: '문치주의 → 국방력 약화 → 북방 민족에 은·비단 지급(재정 악화) → 왕안석의 신법(보수파 반대로 실패)'
+      },
+      {
+        id: 4,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '몽골 제국(원)',
+        question: '다음 자료에 나타난 제국에 대한 설명으로 옳은 것을 <보기>에서 모두 고른 것은?',
+        source: '이 나라는 넓은 영토를 효율적으로 통치하고자 주요 교통로마다 역참을 세우고, 관리나 상인에게 통행증인 패자를 지급하여 숙식과 말을 제공하였다. 또한 지배층을 몽골인, 색목인, 한인, 남인의 4등급으로 차별하였다.',
+        choices: [
+          'ㄱ, ㄴ',
+          'ㄱ, ㄷ',
+          'ㄴ, ㄷ',
+          'ㄴ, ㄹ',
+          'ㄷ, ㄹ'
+        ],
+        subText: '<보기>\nㄱ. 재상제를 폐지하고 황제가 6부를 직접 통솔하였다.\nㄴ. 이탈리아 상인 마르코 폴로가 방문하여 『동방견문록』을 남겼다.\nㄷ. 여러 민족의 언어를 표기하기 위해 공용 문자인 파스파 문자를 만들었다.\nㄹ. 과거제 축소로 관직에 나아가지 못한 지식인들이 대본을 쓰며 경극이 유행하였다.',
+        answer: 2,
+        explanation: '제시문은 몽골 제국(원)에 대한 설명입니다. ㄴ(마르코 폴로 『동방견문록』), ㄷ(파스파 문자)은 원대의 사실입니다. ㄱ은 명 홍무제, ㄹ의 경극은 청대에 유행했습니다(원대에는 잡극 유행).',
+        keyPoint: '원나라 = 쿠빌라이 칸(대도 천도) + 몽골 제일주의(색목인 우대) + 역참제·패자 + 교초 + 잡극'
+      },
+      {
+        id: 5,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '명나라의 발전',
+        question: '다음 두 황제가 실시한 정책을 옳게 연결한 것은?',
+        source: '(가) 난징을 수도로 명을 건국하고, 황제권을 강화하기 위해 토지 대장과 호적 대장을 만들었다.\n(나) 베이징으로 수도를 옮겨 자금성을 건설하고, 정화의 함대를 해외로 보내 국력을 과시하였다.',
+        choices: [
+          '(가) 홍무제 - 재상제 폐지 / (나) 영락제 - 대월(베트남) 정복',
+          '(가) 영락제 - 재상제 폐지 / (나) 홍무제 - 육유 반포',
+          '(가) 홍무제 - 만한 병용제 실시 / (나) 건륭제 - 최대 영토 확보',
+          '(가) 누르하치 - 후금 건국 / (나) 홍타이지 - 병자호란 일으킴',
+          '(가) 강희제 - 삼번의 난 진압 / (나) 옹정제 - 군기처 설치'
+        ],
+        answer: 0,
+        explanation: '(가)는 명을 건국한 홍무제(주원장)로, 재상제를 폐지해 황제가 6부를 직접 통솔했습니다. (나)는 베이징 천도와 정화의 대원정을 이끈 영락제입니다.',
+        keyPoint: '명 홍무제(난징, 재상제 폐지, 토지·호적 대장) → 영락제(베이징 천도, 자금성, 정화의 항해)'
+      },
+      {
+        id: 6,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '청의 한족 지배',
+        question: '청나라가 소수의 만주족으로 다수의 한족을 지배하기 위해 펼친 정책 중 성격이 다른 하나는?',
+        source: null,
+        choices: [
+          '한족 남자들에게 만주족의 풍습인 변발과 호복을 강요하였다.',
+          '청 왕조를 비판하는 서적과 사상을 엄격히 탄압하였다.',
+          '주요 관직에 만주족과 한족을 함께 등용하는 만한 병용제를 실시하였다.',
+          '유학 교육을 장려하고 과거제를 실시하여 한족 지식인을 포섭하였다.',
+          '『사고전서』 등 대규모 서적 편찬 사업에 한족 학자들을 참여시켰다.'
+        ],
+        answer: 0,
+        explanation: '①은 변발과 호복(만주족 옷) 강요로 강압책에 해당합니다. ② 역시 강압책(문자의 옥)이며, ③, ④, ⑤는 한족 지식인을 포섭하기 위한 회유책입니다.',
+        keyPoint: '청의 한족 통치 = 강압책(변발·호복, 사상 탄압) + 회유책(만한 병용제, 과거제, 대규모 편찬 사업)'
+      },
+      {
+        id: 7,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '명·청 사회와 조세',
+        question: '명·청 시대의 경제와 사회 변화에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '유럽과 일본 상인들이 중국의 차·비단·도자기를 사면서 막대한 양의 은이 유입되었다.',
+          '청은 18세기 중반 이후 광저우 한 곳만 개방하고 공행을 통한 무역만 허용하였다.',
+          '은의 유통이 늘어나면서 명대에는 일조편법, 청대에는 지정은제가 시행되었다.',
+          '명대에는 실증적 경전 연구인 고증학, 청대에는 실천을 강조하는 양명학이 발달하였다.',
+          '이탈리아 선교사 마테오 리치가 제작한 『곤여만국전도』는 중국인의 중화사상에 충격을 주었다.'
+        ],
+        answer: 3,
+        explanation: '명대에는 형식보다 실천을 강조하는 양명학이 유행하였고, 청대에는 사상 통제의 영향으로 유교 경전을 실증적으로 연구하는 고증학이 발전하였습니다.',
+        keyPoint: '은 경제(아메리카·일본 은 유입) → 명 일조편법, 청 지정은제(은 납부) / 명 양명학 ↔ 청 고증학'
+      },
+      {
+        id: 8,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '일본 막부 정권',
+        question: '일본 무사 정권의 변천 과정과 에도 막부에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '최초의 무사 정권은 무로마치 막부이며, 이후 가마쿠라 막부가 들어섰다.',
+          '도쿠가와 이에야스는 전국 시대를 통일한 직후 조선을 침략하여 임진왜란을 일으켰다.',
+          '에도 막부는 다이묘를 통제하기 위해 일정 기간 에도에 머물게 하는 산킨코타이 제도를 시행하였다.',
+          '에도 시대에는 무사 계층을 중심으로 가부키와 목판화 우키요에가 유행하였다.',
+          '에도 막부는 모든 서양 국가와 교류를 끊고, 오직 포르투갈 상인에게만 나가사키를 개방하였다.'
+        ],
+        answer: 2,
+        explanation: '에도 막부(도쿠가와 이에야스)는 지방 다이묘들의 경제력을 소모시키고 반란을 막기 위해 1년씩 에도에 머물게 하는 산킨코타이 제도를 시행했습니다. ④는 조닌(상공업자) 문화, ⑤는 네덜란드 상인입니다.',
+        keyPoint: '가-무-전-에: 가마쿠라 → 무로마치 → 전국시대(히데요시·임진왜란) → 에도막부(산킨코타이·조닌문화·란학)'
+      },
+      {
+        id: 9,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '무굴 제국',
+        question: '무굴 제국의 두 황제 (가), (나)에 대한 설명으로 옳은 것은?',
+        source: '• (가)는 북인도 대부분을 통일하고, 비이슬람교도에게 거두던 세금인 지즈야를 폐지하며 힌두교도에게도 관직을 주었다.\n• (나)는 남인도까지 정복해 최대 영토를 차지했으나, 지즈야를 다시 거두고 힌두교 사원을 파괴하여 각지에서 반란이 일어났다.',
+        choices: [
+          '(가)는 델리를 정복하고 무굴 제국을 처음 건국한 바부르이다.',
+          '(가)는 죽은 왕비를 기리기 위해 인도·이슬람 양식의 타지마할을 건설하였다.',
+          '(가)의 관용 정책으로 힌두교와 이슬람교가 절충된 시크교가 완전히 소멸하였다.',
+          '(나)는 모든 종교를 동등하게 존중하여 이슬람교 개종을 강요하지 않았다.',
+          '(나) 시기 이후 무굴 제국이 쇠퇴하면서 영국 등 서양 세력이 침입할 빌미를 주었다.'
+        ],
+        answer: 4,
+        explanation: '(가)는 관용 정책을 펼친 아크바르 황제, (나)는 힌두교를 탄압한 아우랑제브 황제입니다. 아우랑제브 황제 이후 각지에서 반란이 일어나며 무굴 제국이 쇠퇴해 서양 세력이 침입하게 됩니다.',
+        keyPoint: '아크바르(지즈야 폐지·관용) vs 아우랑제브(최대 영토 but 지즈야 부활·탄압 → 쇠퇴) / 샤자한(타지마할)'
+      },
+      {
+        id: 10,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '오스만 제국',
+        question: '오스만 제국의 발전과 통치 정책에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '메흐메트 2세는 비잔티움 제국을 정복하고 콘스탄티노폴리스를 수도로 삼아 이스탄불로 불렀다.',
+          '오스만 제국의 술탄은 칼리프 칭호를 이어받아 이슬람 세계의 정치·종교적 지배자가 되었다.',
+          '술레이만 1세 때 헝가리를 정복하고 지중해를 장악하며 전성기를 맞이하였다.',
+          '정복 주민에게 이슬람교 개종을 강요하고, 모든 종교 공동체의 자치를 엄격히 금지하였다.',
+          '크리스트교도 소년을 교육하여 술탄의 친위 부대인 예니체리나 고위 관료로 등용하였다.'
+        ],
+        answer: 3,
+        explanation: '오스만 제국은 정복한 주민들이 세금(지즈야)만 내면 각자의 종교 공동체(밀레트) 안에서 고유한 종교와 법, 언어를 유지하며 자치하도록 허용하는 관용 정책을 펼쳤습니다.',
+        keyPoint: '오스만 = 메흐메트 2세(1453 콘스탄티노폴리스 함락) + 술레이만 1세(전성기) + 밀레트(종교 자치) + 예니체리'
+      },
+      {
+        id: 11,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '신항로 개척',
+        question: '15세기 말~16세기 유럽의 신항로 개척에 대한 연결이 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '바르톨로메우 디아스(포르투갈) — 아프리카 남단 희망봉 도착',
+          '바스쿠 다 가마(포르투갈) — 희망봉을 돌아 인도 캘리컷 도착',
+          '콜럼버스(에스파냐 후원) — 대서양을 건너 아메리카 서인도 제도 도착',
+          '마젤란 함대(에스파냐 후원) — 태평양을 가로질러 최초로 세계 일주 성공',
+          '피사로(포르투갈) — 멕시코 고원의 아스테카 문명 정복 및 파괴'
+        ],
+        answer: 4,
+        explanation: '아메리카 문명을 파괴한 정복자들은 모두 에스파냐 출신입니다. 멕시코의 아스테카 문명은 코르테스가, 안데스의 잉카 문명은 피사로가 정복했습니다.',
+        keyPoint: '포동 디다(포르투갈-동쪽: 디아스·다가마) / 에서 콜마(에스파냐-서쪽: 콜럼버스·마젤란)'
+      },
+      {
+        id: 12,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '삼각 무역과 은 경제',
+        question: '신항로 개척 이후 형성된 세계 교역망과 그 영향에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '무역의 중심지가 대서양에서 지중해 연안의 이탈리아 도시들로 이동하였다.',
+          '아메리카에서 막대한 양의 금과 은이 유럽으로 들어오면서 유럽의 물가가 크게 하락하였다.',
+          '아메리카 원주민의 인구가 급증하자 노동력을 줄이기 위해 아프리카 노예 무역이 폐지되었다.',
+          '볼리비아의 포토시 은광과 일본의 이와미 은광에서 생산된 은이 중국과 인도로 흘러들어갔다.',
+          '에스파냐와 포르투갈은 17세기에 동인도 회사를 세워 영국과 네덜란드를 물리치고 아시아 무역을 독점하였다.'
+        ],
+        answer: 3,
+        explanation: '16~17세기 아메리카(포토시)와 일본(이와미)에서 채굴된 막대한 은이 중국의 차·비단·도자기와 인도의 면직물(캘리코) 수입 대금으로 지불되면서 전 세계 교역망이 연결되었습니다.',
+        keyPoint: '대서양 삼각 무역(유럽 무기 → 아프리카 노예 → 아메리카 사탕수수·은) & 전 세계 은의 중국 유입'
+      },
+      {
+        id: 13,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '종교 개혁',
+        question: '16세기 유럽에서 일어난 종교 개혁에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '독일의 루터는 로마 가톨릭 교회의 면벌부 판매를 비판하며 「95개조 반박문」을 발표하였다.',
+          '스위스의 칼뱅은 인간의 구원은 미리 예정되어 있다는 예정설을 주장하였다.',
+          '칼뱅의 주장은 근면과 절약을 강조하여 당시 상공업자들의 열렬한 지지를 받았다.',
+          '영국의 헨리 8세는 교황의 권위를 인정하고 가톨릭 교회를 더욱 강화하기 위해 수장령을 발표하였다.',
+          '구교와 신교의 대립이 심화되면서 독일에서 일어난 30년 전쟁은 국제 전쟁으로 확대되었다.'
+        ],
+        answer: 3,
+        explanation: '영국의 헨리 8세는 이혼 문제를 계기로 로마 가톨릭 교회의 영향력에서 벗어나고자 국왕이 영국 교회의 수장임을 선포(수장령)하며 영국 국교회를 세웠습니다.',
+        keyPoint: '루터(95개조 반박문) · 칼뱅(예정설, 상공업자 지지) · 영국 국교회(헨리 8세 수장령) → 30년 전쟁'
+      },
+      {
+        id: 14,
+        unit: 'unit4',
+        unitName: 'Ⅳ단원',
+        topic: '재정·군사 국가와 계몽사상',
+        question: '17~18세기 유럽의 재정·군사 국가와 사상 변화에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '재정·군사 국가는 금과 은을 확보하기 위해 수입을 늘리고 수출을 제한하는 중상주의를 펼쳤다.',
+          '프랑스 루이 14세는 왕권신수설을 내세우고 베르사유 궁전을 지어 귀족들을 통제하였다.',
+          '영국 엘리자베스 1세는 프랑스 루이 14세의 무적함대를 물리치고 아메리카 식민지를 독점하였다.',
+          '17세기 유럽에서는 균형과 비례를 중시하는 고전적인 르네상스 양식이 새롭게 유행하였다.',
+          '계몽사상가 몽테스키외는 국민 주권을 주장하며 절대 왕정의 왕권신수설을 이론적으로 뒷받침하였다.'
+        ],
+        answer: 1,
+        explanation: '프랑스의 루이 14세("짐이 곧 국가다")는 왕권신수설을 내세우고 베르사유 궁전을 지었으며, 재무 장관 콜베르를 등용해 중상주의 정책을 펼쳤습니다. ① 수입 제한·수출 장려, ③ 에스파냐 무적함대, ④ 바로크 양식, ⑤ 몽테스키외는 삼권 분립 주장.',
+        keyPoint: '중상주의(수입 제한·수출 장려) / 프랑스 루이 14세(왕권신수설·베르사유·콜베르) / 영국(잉글랜드 은행)'
+      },
+
+      // -------------------- [Ⅴ단원: 제국주의와 국민 국가 건설 운동 (16문항)] --------------------
+      {
+        id: 15,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '영국 혁명',
+        question: '영국 혁명의 전개 과정을 시대순으로 바르게 나열한 것은?',
+        source: '(가) 크롬웰이 이끄는 의회파가 왕당파를 격파하고 찰스 1세를 처형한 뒤 공화정을 세웠다.\n(나) 의회가 제임스 2세를 몰아내고 메리와 윌리엄을 공동 왕으로 추대하였다.\n(다) 찰스 1세가 의회를 무시하고 과세하자 의회가 「권리 청원」을 제출하였다.\n(라) 메리 여왕과 윌리엄 3세가 「권리 장전」을 받아들이며 입헌 군주제의 기초가 마련되었다.',
+        choices: [
+          '(가) - (다) - (나) - (라)',
+          '(다) - (가) - (나) - (라)',
+          '(다) - (나) - (가) - (라)',
+          '(나) - (다) - (가) - (라)',
+          '(가) - (나) - (라) - (다)'
+        ],
+        answer: 1,
+        explanation: '찰스 1세에게 「권리 청원」 제출(다) → 청교도 혁명과 공화정 수립(가) → 크롬웰 사후 왕정복고, 제임스 2세 폐위(나, 명예혁명) → 「권리 장전」 승인 및 입헌 군주제 확립(라) 순서입니다.',
+        keyPoint: '권리 청원(1628, 찰스 1세) → 청교도 혁명(크롬웰) → 명예혁명(1688) → 권리 장전(1689, 입헌 군주제)'
+      },
+      {
+        id: 16,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '미국 혁명',
+        question: '미국 혁명에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '영국이 7년 전쟁 이후 식민지에 인지세와 차세 등을 부과하면서 갈등이 시작되었다.',
+          '식민지 주민들은 "대표 없는 곳에 과세할 수 없다"며 보스턴 차 사건을 일으켰다.',
+          '독립 전쟁 중 발표된 「미국 독립 선언문」에는 천부 인권, 국민 주권, 저항권이 담겨 있다.',
+          '파리 조약으로 독립을 인정받은 뒤 각 주의 자치를 없애는 중앙 집권적 단일 국가 헌법을 제정하였다.',
+          '세계 최초의 민주 공화국으로 수립되어 프랑스 혁명과 라틴 아메리카 독립에 영향을 주었다.'
+        ],
+        answer: 3,
+        explanation: '독립을 이룬 13개 식민지는 각 주가 통합된 연방 정부 아래에서 광범위한 자치를 누리는 연방제와 삼권 분립을 특징으로 하는 세계 최초의 성문 민주 헌법을 제정했습니다.',
+        keyPoint: '7년 전쟁 후 과세 → 보스턴 차 사건(1773) → 독립 선언문(1776) → 파리 조약(1783) → 연방제·삼권분립 헌법'
+      },
+      {
+        id: 17,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '프랑스 혁명 순서',
+        question: '프랑스 혁명 시기 다음 사건들이 일어난 순서대로 옳게 나열한 것은?',
+        source: '(가) 루이 16세가 처형되고 로베스피에르가 이끄는 급진파의 공포 정치가 실시되었다.\n(나) 제3신분 대표들이 국민 의회를 결성하고 테니스코트의 서약을 발표하였다.\n(다) 파리 민중이 구제도의 상징이던 바스티유 감옥을 습격하고 인권 선언이 발표되었다.\n(라) 총재 정부의 혼란을 틈타 나폴레옹이 쿠데타를 일으켜 통령 정부를 수립하였다.',
+        choices: [
+          '(나) - (다) - (가) - (라)',
+          '(나) - (가) - (다) - (라)',
+          '(다) - (나) - (가) - (라)',
+          '(다) - (가) - (나) - (라)',
+          '(가) - (나) - (다) - (라)'
+        ],
+        answer: 0,
+        explanation: '삼부회 소집 → 국민 의회·테니스코트의 서약(나) → 바스티유 습격·인권 선언(다) → 입법 의회 → 국민 공회·루이 16세 처형 및 공포 정치(가) → 총재 정부 → 나폴레옹 쿠데타(라) 순서입니다.',
+        keyPoint: '삼-국-입-공-총-나: 삼부회 → 국민의회(인권선언) → 입법의회 → 국민공회(공화정·공포정치) → 총재정부 → 나폴레옹'
+      },
+      {
+        id: 18,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '나폴레옹 시대',
+        question: '나폴레옹의 활동과 그 역사적 의의에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '집권 초기 국민 교육 제도를 도입하고 「나폴레옹 법전」을 편찬하여 시민 사회의 규범을 마련하였다.',
+          '국민 투표를 거쳐 황제에 오른 뒤 유럽 대부분 지역을 정복하였다.',
+          '영국을 굴복시키기 위해 유럽 대륙과 영국 사이의 무역을 금지하는 대륙 봉쇄령을 내렸다.',
+          '대륙 봉쇄령을 어긴 러시아 원정에 대승을 거두며 영국의 항복을 받아내었다.',
+          '정복 전쟁 과정에서 유럽 각국에 프랑스 혁명의 이념인 자유주의와 민족주의 의식이 확산되었다.'
+        ],
+        answer: 3,
+        explanation: '나폴레옹은 대륙 봉쇄령을 무시하고 영국과 교류한 러시아를 원정(1812)했으나, 러시아의 혹독한 추위로 대실패하고 이어 대프랑스 동맹에 패배하며 몰락했습니다.',
+        keyPoint: '나폴레옹 = 나폴레옹 법전 + 황제 즉위(1804) + 대륙 봉쇄령 + 러시아 원정 실패 → 자유·민족주의 확산'
+      },
+      {
+        id: 19,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '빈 체제와 자유주의',
+        question: '빈 체제와 19세기 유럽의 자유주의 운동에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '오스트리아 재상 메테르니히가 주도한 빈 체제는 프랑스 7월 혁명으로 완전히 붕괴하였다.',
+          '프랑스 7월 혁명으로 왕정이 폐지되고 공화정이 수립되었다.',
+          '프랑스 2월 혁명의 영향으로 오스트리아에서 메테르니히가 추방되며 빈 체제가 무너졌다.',
+          '영국 노동자들은 「인민헌장」을 발표하며 여성과 미성년자의 선거권을 요구하는 차티스트 운동을 벌였다.',
+          '영국은 19세기 중반 곡물법과 항해법을 강화하여 보호 무역 체제를 확립하였다.'
+        ],
+        answer: 2,
+        explanation: '1848년 프랑스 2월 혁명으로 왕정이 폐지되고 공화정이 수립되었으며, 이 여파로 오스트리아에서 메테르니히가 추방되며 빈 체제가 사실상 붕괴했습니다. 7월 혁명(1830)은 입헌 군주제, 차티스트 운동은 21세 이상 남자 보통 선거권 요구, 영국은 곡물법·항해법 폐지(자유 무역).',
+        keyPoint: '7월 혁명(1830, 입헌군주제) → 2월 혁명(1848, 공화정, 빈 체제 붕괴) / 영국 차티스트 운동(인민헌장)'
+      },
+      {
+        id: 20,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '이탈리아와 독일의 통일',
+        question: '19세기 후반 이탈리아와 독일의 통일 과정에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '이탈리아에서는 사르데냐 왕국 재상 카부르가 프랑스의 도움을 받아 오스트리아를 물리치고 중북부를 통합하였다.',
+          '이탈리아 남부에서는 가리발디가 의용대를 이끌고 시칠리아와 나폴리를 점령한 뒤 사르데냐 국왕에게 바쳤다.',
+          '독일은 오스트리아를 중심으로 관세 동맹을 맺어 경제적 통일의 기반을 마련하였다.',
+          '프로이센의 재상 비스마르크는 군사력을 앞세우는 철혈 정책을 바탕으로 통일을 추진하였다.',
+          '독일은 오스트리아와 프랑스와의 전쟁에서 승리한 뒤 빌헬름 1세가 황제로 즉위하며 독일 제국을 수립하였다.'
+        ],
+        answer: 2,
+        explanation: '독일의 관세 동맹은 오스트리아가 아닌 프로이센을 중심으로 체결되어 경제적 통일의 기반을 마련했습니다.',
+        keyPoint: '이탈리아(카부르 + 가리발디 의용대, 1861) / 독일(프로이센 관세 동맹 + 비스마르크 철혈 정책, 1871)'
+      },
+      {
+        id: 21,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '미국 남북 전쟁과 라틴 아메리카',
+        question: '19세기 아메리카 대륙의 변화에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '미국 남부에서는 노예를 이용한 목화 대농장 경영이 발달하여 노예제 확대에 찬성하였다.',
+          '노예제 확대를 반대한 링컨이 대통령에 당선되자 남부 여러 주가 연방을 탈퇴하며 남북 전쟁이 일어났다.',
+          '전쟁 중 링컨의 노예 해방 선언이 발표되었으며, 결국 북부가 승리하여 대륙 횡단 철도를 완성하였다.',
+          '라틴 아메리카에서는 아이티가 흑인 노예 봉기를 통해 가장 먼저 독립국을 세웠다.',
+          '라틴 아메리카 독립 이후 원주민과 흑인이 정권을 장악하면서 경제적 자립을 달성하였다.'
+        ],
+        answer: 4,
+        explanation: '라틴 아메리카 독립 이후에는 백인 이주민의 후손인 크리오요가 정권을 독점하고 군부 정변이 이어졌으며, 원료 수출·공업품 수입 구조로 미국과 유럽에 경제적으로 종속되었습니다.',
+        keyPoint: '미국 남북 전쟁(링컨 노예 해방 선언 → 북부 승) / 라틴아메리카(아이티 최초 독립, 볼리바르·산마르틴, 먼로주의)'
+      },
+      {
+        id: 22,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '산업 혁명',
+        question: '영국에서 시작된 산업 혁명의 배경과 전개 과정에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '영국은 일찍부터 정치적 안정을 이루었고, 석탄과 철 등 지하자원이 풍부하였다.',
+          '인클로저 운동으로 농토를 잃은 농민들이 도시로 몰려들어 값싼 노동력을 제공하였다.',
+          '영국의 산업 혁명은 면직물 공업에서 시작되어 제임스 와트의 증기 기관 개량으로 가속화되었다.',
+          '새로운 기계의 보급으로 가내 수공업이 확대되고 공장제 기계 공업은 점차 쇠퇴하였다.',
+          '기계 도입으로 일자리를 잃었다고 여긴 일부 노동자들은 기계를 부수는 러다이트 운동을 벌였다.'
+        ],
+        answer: 3,
+        explanation: '새로운 기계(방적기·방직기·증기 기관)의 사용으로 전통적인 가내 수공업은 쇠퇴하고 공장제 기계 공업이 확립되었습니다.',
+        keyPoint: '영국 산업 혁명(면직물 공업 + 와트 증기 기관 → 공장제 기계 공업) & 사회 문제(러다이트 운동)'
+      },
+      {
+        id: 23,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '자본주의와 사회주의',
+        question: '산업 혁명 이후 등장한 두 사상가 (가), (나)에 대한 설명으로 옳은 것은?',
+        source: '• (가)는 국가의 간섭을 최소한으로 줄이고 개인의 자유로운 경제 활동을 보장하면 국가의 부를 늘릴 수 있다고 주장하였다.\n• (나)는 노동자들이 단결하여 자본가를 무너뜨리고 사유 재산 제도가 없는 사회를 건설해야 한다고 주장하였다.',
+        choices: [
+          '(가)는 뉴 라나크에 협동 작업 공동체를 건설한 사회주의자 오언이다.',
+          '(가)의 자유방임주의 사상은 자본주의 체제가 자리 잡는 데 이론적 토대가 되었다.',
+          '(나)는 정부의 적극적인 시장 개입을 통해 대공황을 극복하자는 뉴딜 정책을 제안하였다.',
+          '(나)는 계몽사상가 로크로, 정부의 탄압에 맞선 국민의 저항권을 강조하였다.',
+          '(가)와 (나) 모두 토지와 공장의 공동 소유를 통해 빈부 격차를 없애야 한다고 보았다.'
+        ],
+        answer: 1,
+        explanation: '(가)는 자유방임주의를 주장한 자본주의 경제학자 애덤 스미스이고, (나)는 계급 투쟁과 사유 재산 폐지를 주장한 사회주의 사상가 마르크스입니다.',
+        keyPoint: '자본주의(애덤 스미스, 자유방임주의) vs 사회주의(오언 협동 공동체, 마르크스 사유 재산 폐지)'
+      },
+      {
+        id: 24,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '제국주의 침략',
+        question: '19세기 후반 제국주의 열강의 침략에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '제국주의 열강은 침략을 정당화하기 위해 계몽사상과 천부 인권설을 내세웠다.',
+          '아프리카에서는 영국의 횡단 정책과 프랑스의 종단 정책이 파쇼다 사건으로 충돌하였다.',
+          '베를린 회의 이후 아프리카는 라이베리아와 에티오피아를 제외한 대부분이 식민지가 되었다.',
+          '네덜란드는 베트남과 캄보디아 등 인도차이나반도를 점령하여 식민지로 삼았다.',
+          '미국은 오스트레일리아와 뉴질랜드를 지배하고, 영국은 하와이와 필리핀을 병합하였다.'
+        ],
+        answer: 2,
+        explanation: '1884년 베를린 회의 이후 열강의 아프리카 분할이 가속화되어 라이베리아와 에티오피아만 독립을 유지했습니다. ① 사회 진화론·인종주의, ② 영국 종단·프랑스 횡단, ④ 프랑스가 인도차이나 점령, ⑤ 영국이 오스트레일리아·뉴질랜드, 미국이 하와이·필리핀 차지.',
+        keyPoint: '사회 진화론·인종주의 / 아프리카(영국 종단 vs 프랑스 횡단 → 파쇼다 사건, 1898)'
+      },
+      {
+        id: 25,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '오스만과 인도의 근대화',
+        question: '오스만 제국과 인도의 국민 국가 건설 운동에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '오스만 제국의 탄지마트 개혁은 보수 세력의 반발과 열강의 간섭으로 큰 성과를 거두지 못하였다.',
+          '오스만 제국의 청년 튀르크당은 혁명을 일으켜 헌법과 의회를 부활시켰으나 극단적 민족주의로 갈등을 낳았다.',
+          '인도에서는 세포이의 항쟁이 진압된 후 무굴 제국이 멸망하고 영국 왕이 다스리는 인도 제국이 수립되었다.',
+          '영국은 인도의 민족 운동을 분열시키기 위해 1905년 벵골 분할령을 발표하였다.',
+          '인도 국민 회의는 벵골 분할령에 찬성하며 영국 상품 애용 운동을 주도하였다.'
+        ],
+        answer: 4,
+        explanation: '초기에는 영국에 협조적이었던 인도 국민 회의는 영국의 벵골 분할령(1905) 발표 이후 영국 상품 배척, 스와라지(자치), 스와데시(국산품 애용), 국민 교육 실시를 내세우며 격렬한 반영 운동을 펼쳤습니다.',
+        keyPoint: '오스만(탄지마트 → 청년 튀르크당 혁명) / 인도(세포이 항쟁 → 인도 제국 → 벵골 분할령 반대 반영 운동)'
+      },
+      {
+        id: 26,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '아편 전쟁과 불평등 조약',
+        question: '19세기 중반 중국에서 일어난 두 차례의 아편 전쟁과 조약에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '영국은 중국과의 무역에서 막대한 흑자가 발생하자 이를 줄이기 위해 아편을 밀수출하였다.',
+          '제1차 아편 전쟁에서 패배한 청은 난징 조약을 맺어 홍콩을 영국에 넘기고 5개 항구를 개항하였다.',
+          '난징 조약의 결과 외국 공사의 베이징 주재와 크리스트교 포교의 자유가 허용되었다.',
+          '제2차 아편 전쟁은 청의 임칙서가 영국 상인의 아편을 몰수하여 불태운 사건을 계기로 일어났다.',
+          '제2차 아편 전쟁 이후 체결된 시모노세키 조약으로 타이완이 일본에 할양되었다.'
+        ],
+        answer: 1,
+        explanation: '1차 아편 전쟁(1840~1842) 패배 후 청은 난징 조약을 체결하여 홍콩 할양, 상하이 등 5개 항구 개항, 공행 폐지, 배상금 지불, 영사 재판권 인정 등을 약속했습니다. ③은 톈진·베이징 조약(2차 아편 전쟁), ④는 1차 아편 전쟁 배경입니다.',
+        keyPoint: '1차 아편 전쟁 → 난징 조약(홍콩, 5개 항구, 공행 폐지) / 2차 아편 전쟁(애로호) → 톈진·베이징 조약'
+      },
+      {
+        id: 27,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '중국 근대화 운동 순서',
+        question: '중국의 근대화 운동을 일어난 순서대로 바르게 나열한 것은?',
+        source: '(가) 이홍장 등 한인 관료들이 \'중체서용\'을 내세워 서양 무기와 기술을 받아들이려 하였다.\n(나) 홍수전이 \'멸만흥한\'과 토지 균등 분배를 주장하며 농민 반란을 일으켰다.\n(다) 캉유웨이 등이 일본의 메이지 유신을 본받아 의회 설립과 입헌 군주제 개혁을 추진하였다.\n(라) \'부청멸양\'을 내건 비밀 결사가 서양 세력을 공격하다 8개국 연합군에 진압되었다.',
+        choices: [
+          '(가) - (나) - (다) - (라)',
+          '(나) - (가) - (다) - (라)',
+          '(나) - (다) - (가) - (라)',
+          '(다) - (나) - (가) - (라)',
+          '(나) - (가) - (라) - (다)'
+        ],
+        answer: 1,
+        explanation: '태평천국 운동(나, 1851) → 양무운동(가, 1861~) → 변법자강 운동(다, 1898) → 의화단 운동(라, 1899) 순서로 전개되었습니다.',
+        keyPoint: '태-양-변-의-신: 태평천국(농민) → 양무(중체서용) → 변법자강(제도개혁) → 의화단(반외세) → 신해혁명'
+      },
+      {
+        id: 28,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '신해혁명과 중화민국',
+        question: '신해혁명과 중화민국 수립에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '쑨원은 중국 동맹회를 결성하고 삼민주의(민족·민권·민생주의)를 내세워 혁명을 주도하였다.',
+          '청 정부가 외국 소유의 철도를 민간에 매각하려 하자 이에 반대하는 철도 보호 운동이 일어났다.',
+          '신해혁명 결과 청 왕조가 멸망하고 위안스카이가 초대 임시 대총통으로 선출되었다.',
+          '쑨원은 대총통 자리를 넘겨받은 뒤 황제 체제 부활을 시도하다 병으로 사망하였다.',
+          '신해혁명 이후 중국은 강력한 중앙 집권 체제를 확립하여 오랫동안 정치적 안정을 누렸다.'
+        ],
+        answer: 0,
+        explanation: '쑨원은 일본 도쿄에서 중국 동맹회를 결성(1905)하고 삼민주의(민족·민권·민생주의)를 제창했습니다. ② 민간 철도를 국유화해 외국에 담보로 넘기려 했음, ③ 쑨원이 임시 대총통으로 선출됨, ④ 위안스카이의 행적, ⑤ 위안스카이 사후 군벌이 난립함.',
+        keyPoint: '쑨원(삼민주의) → 우창 봉기(신해혁명, 1911) → 중화민국 수립(1912) → 위안스카이 배신·사후 군벌 난립'
+      },
+      {
+        id: 29,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '일본의 메이지 유신',
+        question: '19세기 후반 일본의 개항과 메이지 유신에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '1853년 미국 함대의 무력시위에 굴복하여 미일 화친 조약을 체결하고 항구를 개방하였다.',
+          '미일 수호 통상 조약으로 일본은 영사 재판권과 최혜국 대우를 인정하는 불평등 조약을 맺었다.',
+          '하급 무사들이 에도 막부를 무너뜨리고 메이지 천황을 중심으로 새 정부를 수립하였다(1868).',
+          '메이지 정부는 다이묘가 다스리던 영지(번)를 없애고 현을 설치하여 지방을 직접 다스렸다.',
+          '일본 제국 헌법을 발표하여 의회를 폐지하고 신분 제도를 더욱 엄격하게 부활시켰다.'
+        ],
+        answer: 4,
+        explanation: '메이지 정부는 신분제를 폐지하고 징병제와 의무 교육을 실시했으며, 1889년 일본 제국 헌법을 발표하고 의회를 세워 천황 중심의 입헌 군주국 모습을 갖추었습니다.',
+        keyPoint: '미국 압력으로 개항(1854) → 메이지 유신(1868, 폐번치현·신분제 폐지·이와쿠라 사절단) → 청일·러일 전쟁 승리'
+      },
+      {
+        id: 30,
+        unit: 'unit5',
+        unitName: 'Ⅴ단원',
+        topic: '조약 비교 종합',
+        question: '다음 조약들과 그 체결 배경의 연결이 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '난징 조약(1842) — 제1차 아편 전쟁 패배 후 청과 영국이 체결하였다.',
+          '베이징 조약(1860) — 제2차 아편 전쟁 패배 후 청이 영국·프랑스와 체결하였다.',
+          '신축 조약(1901) — 의화단 운동 진압 후 청이 8개국 연합국 등 열강과 체결하였다.',
+          '파리 조약(1783) — 미국 독립 전쟁 승리 후 영국으로부터 독립을 인정받았다.',
+          '미일 화친 조약(1854) — 러일 전쟁 승리 후 일본이 미국과 맺은 대등한 우호 조약이다.'
+        ],
+        answer: 4,
+        explanation: '미일 화친 조약(1854)은 미국의 페리 제독이 이끄는 함대의 무력시위에 에도 막부가 굴복하여 체결한 불평등 개항 조약입니다.',
+        keyPoint: '난징(1차 아편) · 베이징(2차 아편) · 신축(의화단) · 파리(미국 독립) · 미일 화친(일본 강제 개항)'
+      },
+
+      // -------------------- [Ⅵ단원: 세계 대전과 사회 변동 (10문항)] --------------------
+      {
+        id: 31,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '제1차 세계 대전 배경',
+        question: '제1차 세계 대전의 발발 배경과 직접적 계기에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '독일·오스트리아·이탈리아가 3국 협상을 맺고, 영국·프랑스·러시아가 3국 동맹을 맺어 대립하였다.',
+          '발칸반도에서는 오스만 제국의 팽창에 맞서 독일과 러시아가 긴밀히 협력하였다.',
+          '보스니아의 사라예보에서 오스트리아 황태자 부부가 세르비아 청년에게 암살당하면서 전쟁이 시작되었다.',
+          '독일이 폴란드를 기습 침공하자 영국과 프랑스가 선전 포고를 하면서 대전으로 번졌다.',
+          '일본이 하와이 진주만을 기습 공격하면서 유럽의 전쟁이 세계 대전으로 확대되었다.'
+        ],
+        answer: 2,
+        explanation: '발칸반도에서 범게르만주의(오스트리아·독일)와 범슬라브주의(세르비아·러시아)가 대립하던 중 1914년 6월 사라예보 사건이 일어나면서 제1차 세계 대전이 발발했습니다. ④, ⑤는 2차 세계 대전입니다.',
+        keyPoint: '3국 동맹(독·오·이) vs 3국 협상(영·프·러) + 발칸반도 갈등 + 사라예보 사건(1914) = 1차 세계 대전'
+      },
+      {
+        id: 32,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '제1차 세계 대전 전개',
+        question: '제1차 세계 대전의 전개 양상과 종전 과정에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '서부 전선에서는 땅을 파고 서로 대치하는 장기 소모전인 참호전이 전개되었다.',
+          '기관총, 탱크, 독가스, 잠수함 등 새로운 무기가 등장하여 막대한 인명 피해를 낳았다.',
+          '후방의 여성과 민간인까지 전쟁 물자 생산에 동원되는 총력전 양상을 띠었다.',
+          '독일이 무제한 잠수함 작전을 펼치면서 미국이 동맹국 편으로 전쟁에 참여하였다.',
+          '러시아는 국내에서 혁명이 일어나자 독일과 단독 강화 조약을 맺고 전쟁에서 물러났다.'
+        ],
+        answer: 3,
+        explanation: '독일의 무제한 잠수함 작전으로 영국 여객선 루시타니아호가 침몰해 많은 미국인이 사망하자, 미국은 동맹국이 아닌 연합국(협상국) 편으로 참전(1917)하여 전세를 역전시켰습니다.',
+        keyPoint: '1차 대전 = 참호전 + 신무기 + 총력전 + 독일 무제한 잠수함 작전 → 미국 연합국 참전(1917) & 러시아 이탈'
+      },
+      {
+        id: 33,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '베르사유 체제와 국제 연맹',
+        question: '제1차 세계 대전 이후 성립된 국제 질서(베르사유 체제)에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '파리 강화 회의에서 제안된 윌슨의 민족 자결주의는 승전국의 식민지에도 공평하게 적용되었다.',
+          '베르사유 조약에 따라 독일은 해외 식민지를 잃고 막대한 배상금을 지불하게 되었다.',
+          '국제 평화를 유지하기 위해 창설된 국제 연맹은 미국의 적극적인 참여로 분쟁을 효과적으로 막았다.',
+          '독일 제국이 무너진 뒤 세워진 바이마르 공화국은 여성의 참정권을 전면 금지하였다.',
+          '제1차 세계 대전 중 여성의 사회적 역할이 축소되면서 여성 참정권 운동이 쇠퇴하였다.'
+        ],
+        answer: 1,
+        explanation: '파리 강화 회의(1919) 결과 맺어진 베르사유 조약은 독일에 모든 전쟁 책임을 물어 해외 식민지 상실, 군비 축소, 천문학적 배상금을 강요했습니다. ① 패전국 식민지에만 적용, ③ 미국 불참 및 군사력 부재, ④·⑤ 여성 참정권 확대.',
+        keyPoint: '베르사유 조약(독일 가혹한 제재) + 국제 연맹(1920, 미국 불참·군사력 없음) + 여성 참정권 확대'
+      },
+      {
+        id: 34,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '러시아 혁명과 소련',
+        question: '러시아 혁명과 소련의 발전에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '1905년 러일 전쟁 중 개혁을 요구하는 시위대에 정부군이 발포한 피의 일요일 사건이 일어났다.',
+          '1917년 3월 혁명으로 노동자와 군인이 소비에트를 결성하고 차르를 몰아내었다.',
+          '레닌이 이끄는 볼셰비키는 11월 혁명을 일으켜 임시 정부를 무너뜨리고 소비에트 정부를 세웠다.',
+          '레닌은 경제난을 극복하기 위해 자본주의 요소를 일부 도입한 신경제 정책(NEP)을 펼쳤다.',
+          '스탈린은 중공업을 억제하고 개인 농장 소유를 확대하는 경제 개발 5개년 계획을 추진하였다.'
+        ],
+        answer: 4,
+        explanation: '레닌의 뒤를 이은 스탈린은 농업의 집단화와 중공업 중심의 경제 개발 5개년 계획을 추진하며 반대파를 숙청하고 공산당 일당 독재 체제를 강화했습니다.',
+        keyPoint: '피의 일요일(1905) → 3월 혁명(차르 타도) → 11월 혁명(레닌·볼셰비키) → NEP & 소련(1922) → 스탈린 5개년 계획'
+      },
+      {
+        id: 35,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '대공황 극복 비교',
+        question: '1929년 미국에서 시작된 대공황에 대한 각국의 대응 방식으로 옳은 것을 <보기>에서 고른 것은?',
+        source: null,
+        choices: [
+          'ㄱ, ㄴ',
+          'ㄱ, ㄷ',
+          'ㄴ, ㄷ',
+          'ㄴ, ㄹ',
+          'ㄷ, ㄹ'
+        ],
+        subText: '<보기>\nㄱ. 미국 — 루스벨트 대통령이 정부가 경제에 개입하는 뉴딜 정책을 실시하였다.\nㄴ. 영국·프랑스 — 해외 식민지를 연결하고 높은 관세를 매기는 블록 경제를 형성하였다.\nㄷ. 독일 — 자유 무역을 전면 확대하고 유대인과의 화합을 통해 위기를 극복하였다.\nㄹ. 일본 — 의회 민주주의를 강화하고 국제 연맹에 가입하여 평화 외교를 펼쳤다.',
+        answer: 0,
+        explanation: '대공황 극복을 위해 미국은 뉴딜 정책(ㄱ), 영국·프랑스는 블록 경제(ㄴ)를 실시했습니다. 반면 식민지가 부족했던 독일·이탈리아·일본은 전체주의와 대외 침략(만주 사변, 중일 전쟁 등)으로 나아갔습니다.',
+        keyPoint: '대공황(1929) 대응: 미국(뉴딜 정책) / 영국·프랑스(블록 경제) / 독일·이탈리아·일본(전체주의·침략)'
+      },
+      {
+        id: 36,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '전체주의 국가',
+        question: '1920~1930년대 등장한 전체주의 국가들에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '전체주의는 개인의 자유보다 민족이나 국가 전체의 이익을 최우선으로 내세웠다.',
+          '이탈리아에서는 무솔리니가 이끄는 파시스트당이 정권을 장악하고 에티오피아를 침략하였다.',
+          '독일에서는 대공황 이후 히틀러가 이끄는 나치스가 집권하여 유대인 탄압 정책을 펼쳤다.',
+          '독일은 베르사유 조약을 파기하고 오스트리아와 체코슬로바키아를 병합하였다.',
+          '일본은 군부 세력을 몰아내고 문민 통치를 확립하여 중국과의 평화 조약을 체결하였다.'
+        ],
+        answer: 4,
+        explanation: '일본은 대공황 이후 군부 세력이 권력을 잡고 군국주의를 내세웠으며, 국제 연맹을 탈퇴한 뒤 만주 사변(1931)과 중일 전쟁(1937)을 일으켰습니다.',
+        keyPoint: '전체주의 3국: 이탈리아(무솔리니 파시즘) · 독일(히틀러 나치즘) · 일본(군국주의)'
+      },
+      {
+        id: 37,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '제2차 세계 대전 발발',
+        question: '제2차 세계 대전의 발발과 확산 과정에 대한 설명으로 옳은 것은?',
+        source: null,
+        choices: [
+          '독일이 영국과 불가침 조약을 맺은 뒤 소련을 침공하면서 제2차 세계 대전이 시작되었다.',
+          '독일이 폴란드를 침공하자 영국과 프랑스가 독일에 선전 포고를 하면서 전쟁이 발발하였다(1939).',
+          '미국이 일본의 하와이 진주만을 먼저 기습 공격하면서 태평양 전쟁이 시작되었다.',
+          '독일은 전쟁 끝까지 소련과의 불가침 조약을 성실히 지키며 서부 전선에만 집중하였다.',
+          '이탈리아·독일·일본은 연합국 진영을 형성하여 미국·영국·소련의 추축국과 맞서 싸웠다.'
+        ],
+        answer: 1,
+        explanation: '독일이 소련과 몰래 독소 불가침 조약을 맺은 뒤 1939년 9월 폴란드를 침공하자, 영국과 프랑스가 독일에 선전 포고를 하면서 제2차 세계 대전이 시작되었습니다.',
+        keyPoint: '추축국(독·이·일) 결성 → 독일 폴란드 침공(1939) → 독일 소련 침공 & 일본 진주만 기습(1941)'
+      },
+      {
+        id: 38,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '제2차 세계 대전 전환점',
+        question: '제2차 세계 대전 중 연합국이 전세를 역전시키는 결정적 계기가 된 3대 전투를 모두 고른 것은?',
+        source: null,
+        choices: [
+          '마른 전투 — 베르됭 전투 — 유틀란트 해전',
+          '트라팔가르 해전 — 아우스터리츠 전투 — 워털루 전투',
+          '미드웨이 해전 — 스탈린그라드 전투 — 노르망디 상륙 작전',
+          '플라시 전투 — 요크타운 전투 — 난징 전투',
+          '마른 전투 — 미드웨이 해전 — 베를린 공방전'
+        ],
+        answer: 2,
+        explanation: '1942년 미국이 일본군을 격파한 미드웨이 해전, 1942~1943년 소련이 독일군을 격파한 스탈린그라드 전투, 1944년 연합국이 파리를 해방한 노르망디 상륙 작전을 계기로 연합국이 승기를 잡았습니다.',
+        keyPoint: '2차 대전 3대 전환점: 미드웨이 해전(태평양) + 스탈린그라드 전투(동부) + 노르망디 상륙 작전(서부)'
+      },
+      {
+        id: 39,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '제2차 세계 대전 종전과 UN',
+        question: '제2차 세계 대전의 결과와 전후 처리에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '이탈리아가 가장 먼저 항복하였고, 이어 베를린이 함락되면서 독일이 항복하였다(1945. 5.).',
+          '미국이 일본의 히로시마와 나가사키에 원자 폭탄을 투하하자 일본이 무조건 항복하였다(1945. 8.).',
+          '유대인 대학살(홀로코스트) 등 반인륜적 범죄가 일어나 인류에게 큰 상처를 남겼다.',
+          '전쟁이 끝난 후 국제 협력과 평화 유지를 위해 국제 연맹이 새롭게 창설되었다.',
+          '국제 연합(UN)은 기존 국제 연맹의 한계를 보완하여 1945년 10월에 창설되었다.'
+        ],
+        answer: 3,
+        explanation: '제1차 세계 대전 이후 창설된 기구가 국제 연맹(1920)이고, 제2차 세계 대전 이후 창설된 기구는 국제 연합(UN, 1945)입니다.',
+        keyPoint: '1차 대전 후 = 국제 연맹(1920) / 2차 대전 후 = 국제 연합(UN, 1945)'
+      },
+      {
+        id: 40,
+        unit: 'unit6',
+        unitName: 'Ⅵ단원',
+        topic: '제2차 세계 대전과 과학 기술',
+        question: '제2차 세계 대전 시기에 활용된 과학 기술에 대한 설명으로 옳지 않은 것은?',
+        source: null,
+        choices: [
+          '플레밍이 푸른곰팡이에서 발견한 페니실린이 대량 생산되어 수많은 부상병의 생명을 구했다.',
+          '영국은 레이더 기술을 활용하여 독일 공군의 폭격을 미리 탐지하고 방어할 수 있었다.',
+          '미국은 맨해튼 계획을 통해 원자 폭탄을 개발하여 일본에 투하하였다.',
+          '원자 폭탄 투하는 전쟁을 조기에 끝내는 계기가 되었으나 수많은 민간인 피해와 방사능 후유증을 남겼다.',
+          '페니실린과 레이더는 대량 살상을 목적으로 개발되어 인류에게 부정적인 영향만 남겼다.'
+        ],
+        answer: 4,
+        explanation: '항생제 페니실린은 세균 감염으로부터 수많은 병사와 민간인의 생명을 구했고, 레이더는 방어와 항해 안전에 기여하는 등 긍정적 역할을 했습니다.',
+        keyPoint: '과학 기술의 양면성: 페니실린·레이더(생명 구원) vs 원자 폭탄(대량 파괴·방사능 후유증)'
+      }
+    ];
+
+    // =========================================================================
+    // 2. 앱 상태 및 localStorage 관리
+    // =========================================================================
+    const STORAGE_KEY_STATS = 'gaeun_history_quiz_stats_v1';
+    const STORAGE_KEY_SESSION = 'gaeun_history_quiz_session_v1';
+
+    let stats = {
+      totalSolved: 0,
+      totalCorrect: 0,
+      wrongIds: [] // 틀린 문제 ID 목록
+    };
+
+    let currentSession = null;
+    let isAnswered = false;
+
+    const MODE_LABELS = {
+      all: '전체 랜덤 스낵 퀴즈',
+      wrong: '오답 노트 집중 복습',
+      unit4: 'Ⅳ단원 집중 공략',
+      unit5: 'Ⅴ단원 집중 공략',
+      unit6: 'Ⅵ단원 집중 공략'
+    };
+
+    // 초기화
+    function initApp() {
+      loadStats();
+      loadSavedSession();
+      updateHomeDashboard();
+    }
+
+    function loadStats() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_STATS);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          stats.totalSolved = parsed.totalSolved || 0;
+          stats.totalCorrect = parsed.totalCorrect || 0;
+          stats.wrongIds = Array.isArray(parsed.wrongIds) ? parsed.wrongIds : [];
+        }
+      } catch (e) {
+        console.error('Failed to load stats', e);
+      }
+    }
+
+    function saveStats() {
+      try {
+        localStorage.setItem(STORAGE_KEY_STATS, JSON.stringify(stats));
+      } catch (e) {
+        console.error('Failed to save stats', e);
+      }
+    }
+
+    function loadSavedSession() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_SESSION);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed && Array.isArray(parsed.questionIds) && parsed.currentIndex < parsed.questionIds.length) {
+            currentSession = parsed;
+          } else {
+            localStorage.removeItem(STORAGE_KEY_SESSION);
+          }
+        }
+      } catch (e) {
+        console.error('Failed to load session', e);
+      }
+    }
+
+    function saveSession() {
+      try {
+        if (currentSession) {
+          localStorage.setItem(STORAGE_KEY_SESSION, JSON.stringify(currentSession));
+        } else {
+          localStorage.removeItem(STORAGE_KEY_SESSION);
+        }
+      } catch (e) {
+        console.error('Failed to save session', e);
+      }
+    }
+
+    // 배열 셔플 (Fisher-Yates)
+    function shuffleArray(arr) {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+      }
+      return copy;
+    }
+
+    // 토스트 알림
+    let toastTimer = null;
+    function showToast(msg) {
+      const box = document.getElementById('toast-box');
+      box.textContent = msg;
+      box.classList.remove('hidden');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        box.classList.add('hidden');
+      }, 2400);
+    }
+
+    // =========================================================================
+    // 3. 화면 전환 및 대시보드 업데이트
+    // =========================================================================
+    function switchScreen(screenName) {
+      document.getElementById('screen-home').classList.add('hidden');
+      document.getElementById('screen-quiz').classList.add('hidden');
+      document.getElementById('screen-result').classList.add('hidden');
+
+      const btnHome = document.getElementById('btn-home');
+      if (screenName === 'home') {
+        btnHome.classList.add('hidden');
+      } else {
+        btnHome.classList.remove('hidden');
+      }
+
+      document.getElementById(`screen-${screenName}`).classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateHomeDashboard() {
+      document.getElementById('stat-solved').textContent = stats.totalSolved;
+      const acc = stats.totalSolved > 0 ? Math.round((stats.totalCorrect / stats.totalSolved) * 100) : 0;
+      document.getElementById('stat-accuracy').textContent = `${acc}%`;
+      document.getElementById('stat-wrong').textContent = stats.wrongIds.length;
+      document.getElementById('badge-wrong-count').textContent = `${stats.wrongIds.length}문제`;
+
+      // 이어풀기 배너 표시 여부
+      const resumeBanner = document.getElementById('resume-banner');
+      if (currentSession && currentSession.currentIndex < currentSession.questionIds.length) {
+        resumeBanner.classList.remove('hidden');
+        const label = MODE_LABELS[currentSession.mode] || '퀴즈';
+        document.getElementById('resume-title').textContent =
+          `${label} (${currentSession.currentIndex + 1} / ${currentSession.questionIds.length}번 문제)`;
+      } else {
+        resumeBanner.classList.add('hidden');
+      }
+    }
+
+    function goHome() {
+      loadSavedSession();
+      updateHomeDashboard();
+      switchScreen('home');
+    }
+
+    // =========================================================================
+    // 4. 퀴즈 시작, 문제 렌더링, 채점 로직
+    // =========================================================================
+    function startQuiz(mode) {
+      let pool = [];
+      if (mode === 'all') {
+        pool = QUESTION_BANK;
+      } else if (mode === 'wrong') {
+        pool = QUESTION_BANK.filter(q => stats.wrongIds.includes(q.id));
+        if (pool.length === 0) {
+          showToast('🎉 오답 노트가 비어 있어요! 틀린 문제가 없습니다.');
+          return;
+        }
+      } else {
+        pool = QUESTION_BANK.filter(q => q.unit === mode);
+      }
+
+      const shuffledIds = shuffleArray(pool.map(q => q.id));
+      currentSession = {
+        mode: mode,
+        questionIds: shuffledIds,
+        currentIndex: 0,
+        sessionCorrect: 0
+      };
+      saveSession();
+      switchScreen('quiz');
+      renderCurrentQuestion();
+    }
+
+    function resumeSavedQuiz() {
+      if (!currentSession) return;
+      switchScreen('quiz');
+      renderCurrentQuestion();
+    }
+
+    function renderCurrentQuestion() {
+      isAnswered = false;
+      const qId = currentSession.questionIds[currentSession.currentIndex];
+      const qObj = QUESTION_BANK.find(item => item.id === qId);
+
+      // 상단 진행률 업데이트
+      const total = currentSession.questionIds.length;
+      const curr = currentSession.currentIndex + 1;
+      document.getElementById('quiz-mode-badge').textContent = MODE_LABELS[currentSession.mode];
+      document.getElementById('quiz-progress-text').textContent = `${curr} / ${total}`;
+      document.getElementById('quiz-progress-bar').style.width = `${Math.round((curr / total) * 100)}%`;
+
+      // 문제 태그 및 질문 렌더링
+      document.getElementById('q-unit-tag').textContent = qObj.unitName;
+      document.getElementById('q-topic-tag').textContent = qObj.topic;
+      document.getElementById('q-text').textContent = `Q${curr}. ${qObj.question}`;
+
+      // 사료 / 보기 박스 처리
+      const sourceBox = document.getElementById('q-source-box');
+      if (qObj.source || qObj.subText) {
+        let combined = '';
+        if (qObj.source) combined += qObj.source;
+        if (qObj.subText) combined += (combined ? '\n\n' : '') + qObj.subText;
+        sourceBox.textContent = combined;
+        sourceBox.classList.remove('hidden');
+      } else {
+        sourceBox.classList.add('hidden');
+      }
+
+      // 선택지 렌더링
+      const choicesContainer = document.getElementById('choices-container');
+      choicesContainer.innerHTML = '';
+      const numLabels = ['①', '②', '③', '④', '⑤'];
+
+      qObj.choices.forEach((choiceText, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'choice-btn w-full text-left p-3.5 rounded-xl border-2 border-slate-200 bg-white hover:border-indigo-400 hover:bg-indigo-50/40 flex items-start gap-2.5 text-sm font-medium text-slate-800 shadow-2xs';
+        btn.onclick = () => selectChoice(idx, qObj);
+
+        btn.innerHTML = `
+          <span class="font-extrabold text-indigo-700 shrink-0 mt-0.5">${numLabels[idx]}</span>
+          <span class="leading-snug">${choiceText}</span>
+        `;
+        choicesContainer.appendChild(btn);
+      });
+
+      // 해설 카드 숨김 & 다음 버튼 비활성화
+      document.getElementById('explanation-card').classList.add('hidden');
+      const btnNext = document.getElementById('btn-next');
+      btnNext.disabled = true;
+      btnNext.className = 'w-2/3 py-3.5 rounded-xl bg-slate-300 text-white font-extrabold text-sm shadow transition cursor-not-allowed';
+      btnNext.textContent = '보기를 선택하세요';
+
+      // 애니메이션 재실행
+      const qContainer = document.getElementById('question-container');
+      qContainer.classList.remove('animate-fade-up');
+      void qContainer.offsetWidth;
+      qContainer.classList.add('animate-fade-up');
+    }
+
+    function selectChoice(selectedIdx, qObj) {
+      if (isAnswered) return;
+      isAnswered = true;
+
+      const isCorrect = (selectedIdx === qObj.answer);
+      const buttons = document.getElementById('choices-container').querySelectorAll('button');
+
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        if (idx === qObj.answer) {
+          btn.className = 'choice-btn w-full text-left p-3.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 flex items-start gap-2.5 text-sm font-bold text-emerald-950 shadow-xs';
+        } else if (idx === selectedIdx && !isCorrect) {
+          btn.className = 'choice-btn w-full text-left p-3.5 rounded-xl border-2 border-rose-500 bg-rose-50 flex items-start gap-2.5 text-sm font-bold text-rose-950 shadow-xs';
+        } else {
+          btn.className = 'choice-btn w-full text-left p-3.5 rounded-xl border border-slate-200 bg-slate-50/60 flex items-start gap-2.5 text-sm text-slate-400 opacity-75';
+        }
+      });
+
+      // 통계 및 오답 노트 업데이트
+      stats.totalSolved += 1;
+      if (isCorrect) {
+        stats.totalCorrect += 1;
+        currentSession.sessionCorrect += 1;
+        // 오답 노트에서 맞힌 경우 제거
+        stats.wrongIds = stats.wrongIds.filter(id => id !== qObj.id);
+      } else {
+        if (!stats.wrongIds.includes(qObj.id)) {
+          stats.wrongIds.push(qObj.id);
+        }
+      }
+      saveStats();
+
+      // 상세 해설 카드 표시
+      const expCard = document.getElementById('explanation-card');
+      const expIcon = document.getElementById('exp-status-icon');
+      const expTitle = document.getElementById('exp-status-title');
+
+      if (isCorrect) {
+        expCard.className = 'mt-4 rounded-2xl p-4 border-2 border-emerald-300 bg-emerald-50/90 animate-fade-up';
+        expIcon.textContent = '⭕';
+        expTitle.textContent = '정답입니다! 아주 잘했어요!';
+        expTitle.className = 'font-extrabold text-base text-emerald-800';
+      } else {
+        expCard.className = 'mt-4 rounded-2xl p-4 border-2 border-rose-300 bg-rose-50/90 animate-fade-up';
+        expIcon.textContent = '❌';
+        expTitle.textContent = `아쉬워요! 정답은 ${['①', '②', '③', '④', '⑤'][qObj.answer]}번입니다.`;
+        expTitle.className = 'font-extrabold text-base text-rose-800';
+      }
+
+      document.getElementById('exp-text').textContent = qObj.explanation;
+      document.getElementById('exp-point').textContent = qObj.keyPoint;
+      expCard.classList.remove('hidden');
+
+      // 다음 문제 버튼 활성화
+      const btnNext = document.getElementById('btn-next');
+      btnNext.disabled = false;
+      btnNext.className = 'w-2/3 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:bg-indigo-800 text-white font-extrabold text-sm shadow-md transition cursor-pointer';
+      const isLast = (currentSession.currentIndex + 1 >= currentSession.questionIds.length);
+      btnNext.textContent = isLast ? '결과 확인하기 🎉' : '다음 문제 풀기 →';
+
+      // 해설이 잘 보이도록 부드럽게 스크롤
+      setTimeout(() => {
+        expCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
+    }
+
+    function nextQuestion() {
+      if (!currentSession) return;
+      currentSession.currentIndex += 1;
+
+      if (currentSession.currentIndex >= currentSession.questionIds.length) {
+        showResultScreen();
+      } else {
+        saveSession();
+        renderCurrentQuestion();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    }
+
+    function showResultScreen() {
+      const total = currentSession.questionIds.length;
+      const correct = currentSession.sessionCorrect;
+      const score = Math.round((correct / total) * 100);
+
+      document.getElementById('res-mode-label').textContent = MODE_LABELS[currentSession.mode];
+      document.getElementById('res-total').textContent = `${total}문항`;
+      document.getElementById('res-correct').textContent = `${correct}개`;
+      document.getElementById('res-score').textContent = `${score}점`;
+
+      const btnRetryWrong = document.getElementById('btn-retry-wrong');
+      if (stats.wrongIds.length > 0) {
+        btnRetryWrong.classList.remove('hidden');
+        btnRetryWrong.textContent = `📌 오답 노트 복습하기 (${stats.wrongIds.length}문제)`;
+      } else {
+        btnRetryWrong.classList.add('hidden');
+      }
+
+      // 완료된 세션 삭제
+      currentSession = null;
+      saveSession();
+      switchScreen('result');
+    }
+
+    // =========================================================================
+    // 5. 모달 및 기록 초기화 처리
+    // =========================================================================
+    function toggleTipsModal(show) {
+      const modal = document.getElementById('tips-modal');
+      if (show) {
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function confirmResetProgress() {
+      document.getElementById('confirm-modal').classList.remove('hidden');
+    }
+
+    function closeConfirmModal() {
+      document.getElementById('confirm-modal').classList.add('hidden');
+    }
+
+    function executeResetProgress() {
+      stats = { totalSolved: 0, totalCorrect: 0, wrongIds: [] };
+      currentSession = null;
+      saveStats();
+      saveSession();
+      closeConfirmModal();
+      updateHomeDashboard();
+      showToast('학습 기록과 오답 노트가 초기화되었습니다.');
+    }
+
+    // 앱 시작
+    window.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
